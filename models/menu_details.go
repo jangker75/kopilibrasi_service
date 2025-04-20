@@ -1,8 +1,11 @@
 package models
 
+import "github.com/jinzhu/gorm"
+
 type MenuDetail struct {
-	// gorm.Model
-	Id          uint    `json:"id" gorm:"unique;primaryKey;autoIncrement"`
+	gorm.Model
+	// Id          uint    `json:"id" gorm:"unique;primaryKey;autoIncrement"`
+	// Id          uint    `json:"id" gorm:"unique;primaryKey;autoIncrement"`
 	CategoryId  uint    `json:"category_id"`
 	Name        string  `json:"name"`
 	Price       float64 `json:"price"`
