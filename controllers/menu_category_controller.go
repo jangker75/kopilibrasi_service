@@ -15,6 +15,15 @@ func FindMenuCategories(c *gin.Context) {
 	utils.RespondJSON(c, http.StatusOK, data)
 }
 
+func FindMenuCategoriesWithMenuDetails(c *gin.Context) {
+	var data []models.MenuCategoryWithMenuDetails
+	models.DB.Find(&data)
+	for i := range data {
+		data[i].MenuDetails = []models.MenuDetail{}
+	}
+	utils.RespondJSON(c, http.StatusOK, data)
+}
+
 func CreateMenuCategory(c *gin.Context) {
 	var input models.MenuCategory
 	if err := c.ShouldBindJSON(&input); err != nil {

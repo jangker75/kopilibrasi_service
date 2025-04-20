@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"fmt"
+	"go-rest-api/config"
 	"go-rest-api/controllers"
 	"go-rest-api/middlewares"
 
@@ -8,6 +10,12 @@ import (
 )
 
 func SetupRouter() *gin.Engine {
+	if config.AppConfig.ENVMode == "production" {
+		gin.SetMode(gin.ReleaseMode)
+		fmt.Println("Running in production mode")
+		fmt.Printf("Listening and serving HTTP on Port :%s\n", config.AppConfig.APPPort)
+	}
+
 	r := gin.Default()
 
 	// Register the IPLogger middleware
@@ -26,6 +34,12 @@ func SetupRouter() *gin.Engine {
 	r.GET("/menu_category/:id", controllers.FindMenuCategory)
 	r.PUT("/menu_category/:id", controllers.UpdateMenuCategory)
 	r.DELETE("/menu_category/:id", controllers.DeleteMenuCategory)
+	r.GET("/get_menus", controllers.FindMenuCategoriesWithMenuDetails)
 
+	// Menu Detail Routes
+	r.GET("/menu_details", controllers.FindMenuDetails)
+
+	// Seed database route
+	r.GET("/seed_dummy", controllers.SeedDummyData)
 	return r
 }

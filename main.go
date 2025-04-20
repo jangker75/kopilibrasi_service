@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-rest-api/config"
 	"go-rest-api/models"
 	"go-rest-api/routes"
 )
@@ -8,5 +9,5 @@ import (
 func main() {
 	models.ConnectDatabase()
 	r := routes.SetupRouter()
-	r.Run(":8001")
+	r.Run(":" + config.AppConfig.APPPort)
 }
