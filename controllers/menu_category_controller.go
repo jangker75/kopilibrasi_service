@@ -16,31 +16,9 @@ func FindMenuCategories(c *gin.Context) {
 }
 
 func FindMenuCategoriesWithMenuDetails(c *gin.Context) {
-	// var data []models.MenuCategoryWithMenuDetails
-	// models.DB.Find(&data)
-
-	// listcategoryId := make([]uint, len(data))
-	// for i, category := range data {
-	// 	listcategoryId[i] = category.ID
-	// }
-
-	// var menuDetails []models.MenuDetail
-	// models.DB.Where("category_id IN ?", listcategoryId).Find(&menuDetails)
-	// for i := range data {
-	// 	data[i].MenuDetails = []models.MenuDetail{}
-	// }
 	var result []models.MenuCategoryWithMenuDetails
 	models.DB.Find(&result)
-	// err := models.DB.Table("menu_category").
-	// 	Select("menu_category.id, menu_category.created_at, menu_category.updated_at, menu_category.deleted_at, menu_category.title, menu_category.category, menu_category.description").
-	// 	Joins("LEFT JOIN menu_details ON menu_category.id = menu_details.category_id").
-	// 	Scan(&result).Error
-
-	// if err != nil {
-	// 	utils.RespondJSON(c, http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-
+	// var categoryIdList []int
 	for i := range result {
 		var details []models.MenuDetail
 		err := models.DB.Where("category_id = ?", result[i].ID).Find(&details).Error
@@ -49,7 +27,20 @@ func FindMenuCategoriesWithMenuDetails(c *gin.Context) {
 			return
 		}
 		result[i].MenuDetails = details
+
+		// categoryIdList = append(categoryIdList, int(result[i].ID))
 	}
+	// var details []models.MenuDetail
+	// models.DB.Where("category_id IN (?)", categoryIdList).Find(&details)
+	// fmt.Println("Category IDs:", categoryIdList)
+	// fmt.Println("Menu Details length:", len(details))
+	// var menuDetailsMap = make(map[uint][]models.MenuDetail)
+	// for i := 0; i < len(details); i++ {
+	// 	menuDetailsMap[details[i].CategoryId] = append(menuDetailsMap[details[i].CategoryId], details[i])
+	// }
+	// for i := 0; i < len(result); i++ {
+	// 	result[i].MenuDetails = menuDetailsMap[result[i].ID]
+	// }
 	utils.RespondJSON(c, http.StatusOK, result)
 }
 
