@@ -4,6 +4,7 @@ import "github.com/jinzhu/gorm"
 
 type MenuCategory struct {
 	gorm.Model
+	ID          uint   `gorm:"unique;primaryKey;autoIncrement" json:"id"` // Exclude from JSON
 	Title       string `json:"title"`
 	Category    string `json:"category"`
 	Description string `json:"description"`
