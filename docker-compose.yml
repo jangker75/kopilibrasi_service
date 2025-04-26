@@ -1,0 +1,20 @@
+services:
+  golang_service:
+    container_name: goapp
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgresdb
+    environment:
+      - DB_HOST=postgresdb
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=golang_test
+      - ENV_MODE=production
+      - APP_PORT=8001
+      - ISDEBUG=false
+    env_file:
+      - .env
