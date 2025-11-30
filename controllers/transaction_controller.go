@@ -29,6 +29,7 @@ func SyncTransactions(c *gin.Context) {
 			Status:          txn.Status,
 			TotalPrice:      txn.TotalPrice,
 			Customer:        txn.Customer,
+			PaymentMethod:   txn.PaymentMethod,
 		})
 		for _, item := range txn.Items {
 			allItems = append(allItems, models.Item{
@@ -56,14 +57,21 @@ func SyncTransactions(c *gin.Context) {
 				"status",
 				"total_price",
 				"customer",
+				"payment_method",
+				"transaction_date",
 			}),
 		},
 	).Create(&dbTxns).Error; err != nil {
 		fmt.Println("Error upserting transactions:", err)
 	}
 	// Replace items: delete old items first then insert new ones
+	// optimize: delete items for all txn_numbers in one query to avoid N+1 deletes
+	txnNumbersToDelete := make([]string, 0, len(input.Transactions))
 	for _, t := range input.Transactions {
-		models.DB.Where("txn_number = ?", t.TxnNumber).Delete(&models.Item{})
+		txnNumbersToDelete = append(txnNumbersToDelete, t.TxnNumber)
+	}
+	if len(txnNumbersToDelete) > 0 {
+		models.DB.Where("txn_number IN ?", txnNumbersToDelete).Delete(&models.Item{})
 	}
 	if err := models.DB.Create(&allItems).Error; err != nil {
 		fmt.Println("Error inserting items:", err)
@@ -81,7 +89,7 @@ func ListTransactions(c *gin.Context) {
 	status := q.Get("status")
 	customer := q.Get("customer")
 
-	db := models.DB.Table("transactions").Select("id,created_at, updated_at, txn_number, status, transaction_date, customer, total_price")
+	db := models.DB.Table("transactions").Select("id,created_at, updated_at, txn_number, status, transaction_date, customer, total_price, payment_method")
 
 	// apply filters
 	if dateFrom == "" && dateTo == "" {
@@ -136,13 +144,14 @@ func ListTransactions(c *gin.Context) {
 
 	// prepare response DTO to include createdAt and updatedAt using CustomTime
 	type txnResp struct {
-		LocalID         uint              `json:"localId"`
+		Id              uint              `json:"id"`
 		TxnNumber       string            `json:"txnNumber"`
 		Status          string            `json:"status"`
 		CreatedAt       models.CustomTime `json:"createdAt"`
 		UpdatedAt       models.CustomTime `json:"updatedAt"`
 		TransactionDate models.CustomTime `json:"transactionDate"`
 		Customer        string            `json:"customer"`
+		PaymentMethod   string            `json:"paymentMethod"`
 		Total           float64           `json:"total"`
 		Items           []models.Item     `json:"items"`
 	}
@@ -150,13 +159,14 @@ func ListTransactions(c *gin.Context) {
 	result := make([]txnResp, 0, len(rows))
 	for _, r := range rows {
 		resp := txnResp{
-			LocalID:         r.ID,
+			Id:              r.ID,
 			TxnNumber:       r.TxnNumber,
 			Status:          r.Status,
 			CreatedAt:       models.CustomTime{Time: r.CreatedAt},
 			UpdatedAt:       models.CustomTime{Time: r.UpdatedAt},
 			TransactionDate: r.TransactionDate,
 			Customer:        r.Customer,
+			PaymentMethod:   r.PaymentMethod,
 			Total:           r.TotalPrice,
 			Items:           itemsByTxn[r.TxnNumber],
 		}

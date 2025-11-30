@@ -11,6 +11,7 @@ type Transaction struct {
 	TransactionDate CustomTime `json:"transactionDate" gorm:"column:transaction_date"`
 	TotalPrice      float64    `json:"total" gorm:"column:total_price"`
 	Customer        string     `json:"customer"`
+	PaymentMethod   string     `json:"paymentMethod" gorm:"column:payment_method"`
 	Items           []Item     `json:"items" gorm:"-"`
 }
 type Item struct {
@@ -34,12 +35,13 @@ func (Item) TableName() string {
 // transactions. We separate this from the DB model to avoid unmarshalling
 // directly into gorm.Model (which has time.Time fields parsed with RFC3339).
 type IncomingTransaction struct {
-	TxnNumber  string     `json:"txnNumber"`
-	Status     string     `json:"status"`
-	CreatedAt  CustomTime `json:"createdAt"`
-	TotalPrice float64    `json:"total"`
-	Customer   string     `json:"customer"`
-	Items      []Item     `json:"items"`
+	TxnNumber     string     `json:"txnNumber"`
+	Status        string     `json:"status"`
+	CreatedAt     CustomTime `json:"createdAt"`
+	TotalPrice    float64    `json:"total"`
+	Customer      string     `json:"customer"`
+	PaymentMethod string     `json:"paymentMethod"`
+	Items         []Item     `json:"items"`
 }
 
 type SyncTransactionRequest struct {
