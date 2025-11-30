@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"fmt"
 	"go-rest-api/models"
 	"go-rest-api/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
 )
 
 func SyncTransactions(c *gin.Context) {
@@ -16,21 +18,46 @@ func SyncTransactions(c *gin.Context) {
 	}
 	// Sukses bind
 	allItems := []models.Item{}
+	dbTxns := make([]models.Transaction, 0)
 	for _, txn := range input.Transactions {
-		allItems = append(allItems, txn.Items...)
+		dbTxns = append(dbTxns, txn)
+		for _, item := range txn.Items {
+			allItems = append(allItems, models.Item{
+				TxnNumber:    txn.TxnNumber,
+				Name:         item.Name,
+				SKU:          item.SKU,
+				Price:        item.Price,
+				Qty:          item.Qty,
+				Discount:     item.Discount,
+				DiscountType: item.DiscountType,
+				LineTotal:    item.LineTotal,
+			})
+		}
 	}
-	transaction := models.Transaction{
-		TxnNumber:  input.Transactions[0].TxnNumber,
-		Status:     input.Transactions[0].Status,
-		TotalPrice: input.Transactions[0].TotalPrice,
-		Customer:   input.Transactions[0].Customer,
-		Items:      []models.Item{},
-	}
+
 	response := models.SyncResponse{
-		Message:      "Data berhasil diterima",
-		ClientID:     input.ClientID,
-		Transactions: transaction,
-		Items:        allItems,
+		Message:  "Data berhasil diterima",
+		ClientID: input.ClientID,
+	}
+	// UPSERT transactions
+	if err := models.DB.Clauses(
+		clause.OnConflict{
+			Columns: []clause.Column{{Name: "txn_number"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"status",
+				"total_price",
+				"customer",
+			}),
+		},
+	).Create(&dbTxns).Error; err != nil {
+		fmt.Println("Error upserting transactions:", err)
+	}
+	// Replace items: delete old items first then insert new ones
+	for _, t := range input.Transactions {
+		models.DB.Where("txn_number = ?", t.TxnNumber).Delete(&models.Item{})
+	}
+	if err := models.DB.Create(&allItems).Error; err != nil {
+		fmt.Println("Error inserting items:", err)
 	}
 	utils.RespondJSON(c, http.StatusOK, response)
 }

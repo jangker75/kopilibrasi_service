@@ -6,15 +6,16 @@ import (
 
 type Transaction struct {
 	gorm.Model
-	TxnNumber  string     `json:"txnNumber" gorm:"column:txn_number"`
+	TxnNumber  string     `json:"txnNumber" gorm:"column:txn_number;unique"`
 	Status     string     `json:"status"`
 	CreatedAt  CustomTime `json:"createdAt" gorm:"-"`
-	TotalPrice uint       `json:"totalPrice" gorm:"column:total_price"`
+	TotalPrice float64    `json:"total" gorm:"column:total_price"`
 	Customer   string     `json:"customer"`
 	Items      []Item     `json:"items" gorm:"-"`
 }
 type Item struct {
 	gorm.Model
+	TxnNumber    string  `json:"txnNumber" gorm:"column:txn_number"`
 	Name         string  `json:"name"`
 	SKU          string  `json:"sku"`
 	Price        float64 `json:"price"`
