@@ -41,5 +41,8 @@ func SetupRouter() *gin.Engine {
 
 	// Seed database route
 	r.GET("/seed_dummy", controllers.SeedDummyData)
+
+	// Transaction Routes
+	r.POST("/sync-transaction", controllers.SyncTransactions)
 	return r
 }
