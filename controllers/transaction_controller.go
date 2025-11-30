@@ -5,6 +5,8 @@ import (
 	"go-rest-api/models"
 	"go-rest-api/utils"
 	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm/clause"
@@ -20,7 +22,14 @@ func SyncTransactions(c *gin.Context) {
 	allItems := []models.Item{}
 	dbTxns := make([]models.Transaction, 0)
 	for _, txn := range input.Transactions {
-		dbTxns = append(dbTxns, txn)
+		// map incoming transaction to DB model
+		dbTxns = append(dbTxns, models.Transaction{
+			TxnNumber:       txn.TxnNumber,
+			TransactionDate: txn.CreatedAt,
+			Status:          txn.Status,
+			TotalPrice:      txn.TotalPrice,
+			Customer:        txn.Customer,
+		})
 		for _, item := range txn.Items {
 			allItems = append(allItems, models.Item{
 				TxnNumber:    txn.TxnNumber,
@@ -60,4 +69,99 @@ func SyncTransactions(c *gin.Context) {
 		fmt.Println("Error inserting items:", err)
 	}
 	utils.RespondJSON(c, http.StatusOK, response)
+}
+
+// ListTransactions returns list of transactions with item details and supports filters
+// Query params: datefrom (YYYY-MM-DD), dateto (YYYY-MM-DD), status, customer
+func ListTransactions(c *gin.Context) {
+	// parse query params
+	q := c.Request.URL.Query()
+	dateFrom := q.Get("datefrom")
+	dateTo := q.Get("dateto")
+	status := q.Get("status")
+	customer := q.Get("customer")
+
+	db := models.DB.Table("transactions").Select("id,created_at, updated_at, txn_number, status, transaction_date, customer, total_price")
+
+	// apply filters
+	if dateFrom == "" && dateTo == "" {
+		// default: last 1 month to avoid very large queries
+		now := time.Now()
+		from := now.AddDate(0, -1, 0)
+		db = db.Where("transaction_date >= ? AND transaction_date <= ?", from, now)
+	} else {
+		if dateFrom != "" {
+			if t, err := time.Parse("2006-01-02", dateFrom); err == nil {
+				db = db.Where("transaction_date >= ?", t)
+			}
+		}
+		if dateTo != "" {
+			if t, err := time.Parse("2006-01-02", dateTo); err == nil {
+				// include the whole dateTo day
+				t = t.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+				db = db.Where("transaction_date <= ?", t)
+			}
+		}
+	}
+	if status != "" {
+		db = db.Where("status = ?", status)
+	}
+	if customer != "" {
+		decoded, _ := url.QueryUnescape(customer)
+		db = db.Where("customer = ?", decoded)
+	}
+
+	var rows []models.Transaction
+	if err := db.Order("id desc").Scan(&rows).Error; err != nil {
+		utils.RespondJSON(c, http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// build result using existing models.Transaction and models.Item
+	// collect txn numbers
+	txnNumbers := make([]string, 0, len(rows))
+	for _, r := range rows {
+		txnNumbers = append(txnNumbers, r.TxnNumber)
+	}
+
+	allItems := []models.Item{}
+	if len(txnNumbers) > 0 {
+		models.DB.Where("txn_number IN ?", txnNumbers).Find(&allItems)
+	}
+
+	// group items by txn_number
+	itemsByTxn := make(map[string][]models.Item)
+	for _, it := range allItems {
+		itemsByTxn[it.TxnNumber] = append(itemsByTxn[it.TxnNumber], it)
+	}
+
+	// prepare response DTO to include createdAt and updatedAt using CustomTime
+	type txnResp struct {
+		LocalID         uint              `json:"localId"`
+		TxnNumber       string            `json:"txnNumber"`
+		Status          string            `json:"status"`
+		CreatedAt       models.CustomTime `json:"createdAt"`
+		UpdatedAt       models.CustomTime `json:"updatedAt"`
+		TransactionDate models.CustomTime `json:"transactionDate"`
+		Customer        string            `json:"customer"`
+		Total           float64           `json:"total"`
+		Items           []models.Item     `json:"items"`
+	}
+
+	result := make([]txnResp, 0, len(rows))
+	for _, r := range rows {
+		resp := txnResp{
+			LocalID:         r.ID,
+			TxnNumber:       r.TxnNumber,
+			Status:          r.Status,
+			CreatedAt:       models.CustomTime{Time: r.CreatedAt},
+			UpdatedAt:       models.CustomTime{Time: r.UpdatedAt},
+			TransactionDate: r.TransactionDate,
+			Customer:        r.Customer,
+			Total:           r.TotalPrice,
+			Items:           itemsByTxn[r.TxnNumber],
+		}
+		result = append(result, resp)
+	}
+
+	utils.RespondJSON(c, http.StatusOK, gin.H{"transactions": result})
 }

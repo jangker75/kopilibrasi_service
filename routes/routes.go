@@ -44,5 +44,6 @@ func SetupRouter() *gin.Engine {
 
 	// Transaction Routes
 	r.POST("/sync-transaction", controllers.SyncTransactions)
+	r.GET("/transactions", controllers.ListTransactions)
 	return r
 }
