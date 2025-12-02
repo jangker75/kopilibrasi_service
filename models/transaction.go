@@ -11,6 +11,7 @@ type Transaction struct {
 	TransactionDate CustomTime `json:"transactionDate" gorm:"column:transaction_date"`
 	TotalPrice      float64    `json:"total" gorm:"column:total_price"`
 	Customer        string     `json:"customer"`
+	Notes           string     `json:"notes"`
 	PaymentMethod   string     `json:"paymentMethod" gorm:"column:payment_method"`
 	Items           []Item     `json:"items" gorm:"-"`
 }
@@ -41,6 +42,7 @@ type IncomingTransaction struct {
 	TotalPrice    float64    `json:"total"`
 	Customer      string     `json:"customer"`
 	PaymentMethod string     `json:"paymentMethod"`
+	Notes         string     `json:"notes"`
 	Items         []Item     `json:"items"`
 }
 

@@ -30,6 +30,7 @@ func SyncTransactions(c *gin.Context) {
 			TotalPrice:      txn.TotalPrice,
 			Customer:        txn.Customer,
 			PaymentMethod:   txn.PaymentMethod,
+			Notes:           txn.Notes,
 		})
 		for _, item := range txn.Items {
 			allItems = append(allItems, models.Item{
@@ -59,6 +60,7 @@ func SyncTransactions(c *gin.Context) {
 				"customer",
 				"payment_method",
 				"transaction_date",
+				"notes",
 			}),
 		},
 	).Create(&dbTxns).Error; err != nil {
@@ -89,7 +91,7 @@ func ListTransactions(c *gin.Context) {
 	status := q.Get("status")
 	customer := q.Get("customer")
 
-	db := models.DB.Table("transactions").Select("id,created_at, updated_at, txn_number, status, transaction_date, customer, total_price, payment_method")
+	db := models.DB.Table("transactions").Select("id,created_at, updated_at, txn_number, status, transaction_date, customer, total_price, payment_method, notes")
 
 	// apply filters
 	if dateFrom == "" && dateTo == "" {
@@ -152,6 +154,7 @@ func ListTransactions(c *gin.Context) {
 		TransactionDate models.CustomTime `json:"transactionDate"`
 		Customer        string            `json:"customer"`
 		PaymentMethod   string            `json:"paymentMethod"`
+		Notes           string            `json:"notes"`
 		Total           float64           `json:"total"`
 		Items           []models.Item     `json:"items"`
 	}
@@ -168,6 +171,7 @@ func ListTransactions(c *gin.Context) {
 			Customer:        r.Customer,
 			PaymentMethod:   r.PaymentMethod,
 			Total:           r.TotalPrice,
+			Notes:           r.Notes,
 			Items:           itemsByTxn[r.TxnNumber],
 		}
 		result = append(result, resp)
