@@ -45,5 +45,8 @@ func SetupRouter() *gin.Engine {
 	// Transaction Routes
 	r.POST("/sync-transaction", controllers.SyncTransactions)
 	r.GET("/transactions", controllers.ListTransactions)
+
+	// Customer Routes
+	r.GET("/customers", controllers.FindCustomers)
 	return r
 }

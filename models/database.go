@@ -52,4 +52,5 @@ func ConnectDatabase() {
 	DB.AutoMigrate(&MenuDetail{})
 	DB.AutoMigrate(&Transaction{})
 	DB.AutoMigrate(&Item{})
+	DB.AutoMigrate(&Customer{})
 }
