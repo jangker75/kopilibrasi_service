@@ -20,10 +20,16 @@ func SyncTransactions(c *gin.Context) {
 	}
 	// Sukses bind
 	allItems := []models.Item{}
-	dbTxns := make([]models.Transaction, 0)
+	// Use a map to deduplicate transactions by txn_number (keep last occurrence)
+	// This prevents "ON CONFLICT DO UPDATE command cannot affect row a second time" error
+	txnMap := make(map[string]models.Transaction)
+	txnOrder := make([]string, 0) // preserve order of first occurrence
 	for _, txn := range input.Transactions {
-		// map incoming transaction to DB model
-		dbTxns = append(dbTxns, models.Transaction{
+		if _, exists := txnMap[txn.TxnNumber]; !exists {
+			txnOrder = append(txnOrder, txn.TxnNumber)
+		}
+		// map incoming transaction to DB model (last occurrence wins)
+		txnMap[txn.TxnNumber] = models.Transaction{
 			TxnNumber:       txn.TxnNumber,
 			TransactionDate: txn.CreatedAt,
 			Status:          txn.Status,
@@ -31,7 +37,7 @@ func SyncTransactions(c *gin.Context) {
 			Customer:        txn.Customer,
 			PaymentMethod:   txn.PaymentMethod,
 			Notes:           txn.Notes,
-		})
+		}
 		for _, item := range txn.Items {
 			allItems = append(allItems, models.Item{
 				TxnNumber:    txn.TxnNumber,
@@ -44,6 +50,11 @@ func SyncTransactions(c *gin.Context) {
 				LineTotal:    item.LineTotal,
 			})
 		}
+	}
+	// Build deduplicated slice preserving order
+	dbTxns := make([]models.Transaction, 0, len(txnMap))
+	for _, txnNum := range txnOrder {
+		dbTxns = append(dbTxns, txnMap[txnNum])
 	}
 
 	response := models.SyncResponse{
