@@ -61,21 +61,24 @@ func SyncTransactions(c *gin.Context) {
 		Message:  "Data berhasil diterima",
 		ClientID: input.ClientID,
 	}
-	// UPSERT transactions
-	if err := models.DB.Clauses(
-		clause.OnConflict{
-			Columns: []clause.Column{{Name: "txn_number"}},
-			DoUpdates: clause.AssignmentColumns([]string{
-				"status",
-				"total_price",
-				"customer",
-				"payment_method",
-				"transaction_date",
-				"notes",
-			}),
-		},
-	).Create(&dbTxns).Error; err != nil {
-		fmt.Println("Error upserting transactions:", err)
+	// UPSERT transactions one by one to avoid primary key conflicts
+	for _, txn := range dbTxns {
+		if err := models.DB.Clauses(
+			clause.OnConflict{
+				Columns: []clause.Column{{Name: "txn_number"}},
+				DoUpdates: clause.AssignmentColumns([]string{
+					"status",
+					"total_price",
+					"customer",
+					"payment_method",
+					"transaction_date",
+					"notes",
+					"updated_at",
+				}),
+			},
+		).Create(&txn).Error; err != nil {
+			fmt.Println("Error upserting transaction:", txn.TxnNumber, err)
+		}
 	}
 	// Replace items: delete old items first then insert new ones
 	// optimize: delete items for all txn_numbers in one query to avoid N+1 deletes
