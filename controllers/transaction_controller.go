@@ -136,7 +136,7 @@ func ListTransactions(c *gin.Context) {
 	}
 
 	var rows []models.Transaction
-	if err := db.Order("id desc").Scan(&rows).Error; err != nil {
+	if err := db.Order("transaction_date desc").Scan(&rows).Error; err != nil {
 		utils.RespondJSON(c, http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
