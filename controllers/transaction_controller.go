@@ -97,7 +97,7 @@ func SyncTransactions(c *gin.Context) {
 
 // ListTransactions returns list of transactions with item details and supports filters
 // Query params: datefrom (YYYY-MM-DD), dateto (YYYY-MM-DD), status, customer
-func ListTransactions(c *gin.Context) {
+func ListTransactionsWithItems(c *gin.Context) {
 	// parse query params
 	q := c.Request.URL.Query()
 	dateFrom := q.Get("datefrom")
@@ -192,4 +192,8 @@ func ListTransactions(c *gin.Context) {
 	}
 
 	utils.RespondJSON(c, http.StatusOK, gin.H{"transactions": result})
+}
+
+func ListTransactions(c *gin.Context) {
+	utils.RespondJSON(c, http.StatusOK, gin.H{"message": "This is a placeholder for ListTransactions"})
 }
